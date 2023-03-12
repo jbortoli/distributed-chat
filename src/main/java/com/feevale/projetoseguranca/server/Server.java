@@ -89,6 +89,7 @@ public class Server {
                     }
                     String message = new String(buffer, 0, bytesRead).trim();
                     broadcastMessage(message, this);
+                    sendMessage("You said: " + message);
                 }
 
                 // Client disconnected

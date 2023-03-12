@@ -36,7 +36,6 @@ public class ChatClient {
                 SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                 String formattedDate = dateFormat.format(currentDate);
                 System.out.println(String.format("%s - Message: %s", formattedDate, message));
-                textArea.append(String.format("[%s]: Me: %s\n", formattedDate, message));
                 sendMessageToServer(message, socket);
                 messageField.setText(""); // Clear messageField for next message
             }
