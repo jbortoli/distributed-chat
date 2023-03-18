@@ -57,8 +57,13 @@ public class ChatClient {
             System.out.println("Connected to server");
 
             // Get username from user
-            String username = JOptionPane.showInputDialog(frame, "Digite seu nome de usuário:");
+            String username = "";
+            while (username.trim().equals("")) {
+               username = JOptionPane.showInputDialog(frame, "Digite seu nome de usuário:");
+            }            
             sendMessageToServer(username, socket);
+            
+            
 
             // Listen for messages from server
             BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
