@@ -7,12 +7,16 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.feevale.projetoseguranca.ServerConfig;
 
 public class Server {
+    // Server configs
     private static final int PORT = (int) ServerConfig.PORT.getValue();
     private static final int MAX_CLIENTS = (int) ServerConfig.MAX_CLIENTS.getValue();
+    private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
 
     private List<ClientHandler> clients = new ArrayList<>();
 
@@ -24,18 +28,16 @@ public class Server {
 
     public void start() {
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
-            System.out.println("Server started on port " + PORT);
-
+            LOGGER.log(Level.INFO, "Server started on port: " + PORT);
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                System.out.println(clients.size());
-
+                LOGGER.log(Level.INFO, "Current clients: " + clients.size() + " of " + MAX_CLIENTS + ".");
                 if (clients.size() >= MAX_CLIENTS) {
-                    System.out.println("Maximum number of clients reached");
+                    LOGGER.log(Level.WARNING, "Maximum number of clients reached");
                     try (OutputStream output = clientSocket.getOutputStream()) {
                         output.write("Server is full, please try again later\n".getBytes());
                     } catch (IOException e) {
-                        System.err.println("Error sending message to client: " + e.getMessage());
+                        LOGGER.log(Level.SEVERE, "Error sending message to client: " + e.getMessage());
                     } finally {
                         clientSocket.close();
                     }
@@ -43,7 +45,7 @@ public class Server {
                 }
 
                 // Wait for a client to connect
-                System.out.println("New client connected: " + clientSocket);
+                LOGGER.log(Level.INFO, "New client connected: " + clientSocket);
 
                 // Create a new thread to handle communication with the client
                 ClientHandler clientHandler = new ClientHandler(clientSocket);
@@ -51,12 +53,12 @@ public class Server {
                 clientHandler.start();
             }
         } catch (IOException e) {
-            System.err.println("Error starting server: " + e.getMessage());
+            LOGGER.log(Level.SEVERE, "Error starting server: " + e.getMessage());
         }
     }
 
     private void broadcastMessage(String message, ClientHandler sender) {
-        System.out.println("Message received from client " + sender.getClientName() + ": " + message);
+        LOGGER.log(Level.INFO, "Message received from client " + sender.getClientName() + ": " + message);
         for (ClientHandler client : clients) {
             if (client != sender) {
                 client.sendMessage(sender.getClientName() + ": " + message);
@@ -85,7 +87,7 @@ public class Server {
                     OutputStream output = clientSocket.getOutputStream();) {
                 int bytesRead = input.read(buffer);
                 clientName = new String(buffer, 0, bytesRead).trim();
-                System.out.println("Client " + clientName + " connected");
+                LOGGER.log(Level.INFO, "Client " + clientName + " connected");
 
                 // Send a welcome message to the client
                 output.write(("Welcome, " + clientName + "!\n").getBytes());
@@ -102,10 +104,10 @@ public class Server {
                 }
 
                 // Client disconnected
-                System.out.println("Client " + clientName + " disconnected");
+                LOGGER.log(Level.INFO, "Client " + clientName + " disconnected");
                 clients.remove(this);
             } catch (IOException e) {
-                System.err.println("Error communicating with client " + clientName + ": " + e.getMessage());
+                LOGGER.log(Level.SEVERE, "Error communicating with client " + clientName + ": " + e.getMessage());
             }
         }
 
@@ -114,7 +116,7 @@ public class Server {
                 OutputStream output = clientSocket.getOutputStream();
                 output.write((message + "\n").getBytes());
             } catch (IOException e) {
-                System.err.println("Error sending message to client " + clientName + ": " + e.getMessage());
+                LOGGER.log(Level.SEVERE, "Error sending message to client " + clientName + ": " + e.getMessage());
             }
         }
     }
