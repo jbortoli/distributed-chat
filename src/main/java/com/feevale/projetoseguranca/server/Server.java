@@ -27,13 +27,22 @@ public class Server {
             System.out.println("Server started on port " + PORT);
 
             while (true) {
+                Socket clientSocket = serverSocket.accept();
+                System.out.println(clients.size());
+
                 if (clients.size() >= MAX_CLIENTS) {
                     System.out.println("Maximum number of clients reached");
+                    try (OutputStream output = clientSocket.getOutputStream()) {
+                        output.write("Server is full, please try again later\n".getBytes());
+                    } catch (IOException e) {
+                        System.err.println("Error sending message to client: " + e.getMessage());
+                    } finally {
+                        clientSocket.close();
+                    }
                     continue;
                 }
 
                 // Wait for a client to connect
-                Socket clientSocket = serverSocket.accept();
                 System.out.println("New client connected: " + clientSocket);
 
                 // Create a new thread to handle communication with the client
