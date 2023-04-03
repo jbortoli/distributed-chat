@@ -11,7 +11,7 @@ import com.feevale.projetoseguranca.ServerConfig;
 
 public class ChatClient {
 
-    private static Socket socket; // Declare socket as a class-level field
+    private static Socket socket;
 
 
     public static void main(String[] args) {
