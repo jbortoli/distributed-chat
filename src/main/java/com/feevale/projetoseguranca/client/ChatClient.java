@@ -92,7 +92,6 @@ public class ChatClient {
                         Date currentDate = new Date(System.currentTimeMillis());
                         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                         String formattedDate = dateFormat.format(currentDate);
-                        LOGGER.log(Level.INFO, (String.format("%s - Message from server: %s", formattedDate, decryptedMessage)));
                         LOGGER.log(Level.INFO, "Received message from server encrypted: " + line);
                         textArea.append(String.format("[%s]: %s\n", formattedDate, decryptedMessage));
                     } catch (Exception e) {
