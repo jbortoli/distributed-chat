@@ -5,12 +5,16 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
 
 import com.feevale.projetoseguranca.ServerConfig;
+import com.feevale.projetoseguranca.util.CryptoUtil;
 
 public class Server {
     // Server configs
@@ -71,9 +75,17 @@ public class Server {
         private Socket clientSocket;
         private String clientName;
         private byte[] buffer = new byte[1024];
+        private SecretKey secretKey;
+        private IvParameterSpec iv;
 
         public ClientHandler(Socket clientSocket) {
             this.clientSocket = clientSocket;
+            try {
+                this.secretKey = CryptoUtil.generateSecretKey();
+                this.iv = CryptoUtil.generateIv();
+            } catch (NoSuchAlgorithmException e) {
+                LOGGER.log(Level.SEVERE, "Error generating secret key: " + e.getMessage());
+            }
         }
 
         public String getClientName() {
@@ -85,12 +97,19 @@ public class Server {
             try (
                     InputStream input = clientSocket.getInputStream();
                     OutputStream output = clientSocket.getOutputStream();) {
+                // Send the secret key and iv to the client
+                output.write(secretKey.getEncoded());
+                output.write(iv.getIV());
+
                 int bytesRead = input.read(buffer);
-                clientName = new String(buffer, 0, bytesRead).trim();
+                String encryptedMessage = new String(buffer, 0, bytesRead).trim();
+                clientName = CryptoUtil.decrypt(encryptedMessage, secretKey, iv).trim();
                 LOGGER.log(Level.INFO, "Client " + clientName + " connected");
 
                 // Send a welcome message to the client
-                output.write(("Welcome, " + clientName + "!\n").getBytes());
+                String welcomeMessage = "Welcome, " + clientName + "!";
+                String encryptedWelcomeMessage = CryptoUtil.encrypt(welcomeMessage, secretKey, iv);
+                output.write((encryptedWelcomeMessage + "\n").getBytes());
 
                 // Loop to read messages sent by the client
                 while (true) {
@@ -98,7 +117,8 @@ public class Server {
                     if (bytesRead == -1) {
                         break;
                     }
-                    String message = new String(buffer, 0, bytesRead).trim();
+                    encryptedMessage = new String(buffer, 0, bytesRead).trim();
+                    String message = CryptoUtil.decrypt(encryptedMessage, secretKey, iv);
                     broadcastMessage(message, this);
                     sendMessage("You said: " + message);
                 }
@@ -108,16 +128,21 @@ public class Server {
                 clients.remove(this);
             } catch (IOException e) {
                 LOGGER.log(Level.SEVERE, "Error communicating with client " + clientName + ": " + e.getMessage());
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "Error decrypting message from client " + clientName + ": " + e.getMessage());
             }
         }
 
         public void sendMessage(String message) {
             try {
                 OutputStream output = clientSocket.getOutputStream();
-                output.write((message + "\n").getBytes());
+                String encryptedMessage = CryptoUtil.encrypt(message, secretKey, iv);
+                output.write((encryptedMessage + "\n").getBytes());
             } catch (IOException e) {
                 LOGGER.log(Level.SEVERE, "Error sending message to client " + clientName + ": " + e.getMessage());
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "Error encrypting message for client " + clientName + ": " + e.getMessage());
             }
-        }
+        }        
     }
 }
